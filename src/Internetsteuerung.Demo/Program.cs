@@ -13,12 +13,14 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<SimFirewall>();
 builder.Services.AddSingleton<IFirewallClient>(sp => sp.GetRequiredService<SimFirewall>());
+builder.Services.AddSingleton<IHostSperreClient>(sp => sp.GetRequiredService<SimFirewall>());
 builder.Services.AddSingleton<BrowserSpeicher>();
 builder.Services.AddSingleton<IRaumRepository>(sp => sp.GetRequiredService<BrowserSpeicher>());
 builder.Services.AddSingleton<ISperreSpeicher>(sp => sp.GetRequiredService<BrowserSpeicher>());
 builder.Services.AddSingleton<IProtokoll>(sp => sp.GetRequiredService<BrowserSpeicher>());
 builder.Services.AddSingleton<SimKlassenraum>();
 builder.Services.AddSingleton<SperrService>();
+builder.Services.AddSingleton<PcSperrService>();
 builder.Services.AddSingleton<DemoSitzung>();
 builder.Services.AddSingleton<DemoTakt>();
 

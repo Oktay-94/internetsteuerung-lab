@@ -84,6 +84,39 @@ internal sealed class InMemorySperreSpeicher : ISperreSpeicher
             Eintraege.Values.Where(s => s.Ende is { } ende && ende <= jetzt).ToList());
 }
 
+internal sealed class FakeHostSperre : IHostSperreClient
+{
+    public List<string> Gesperrt { get; } = [];
+
+    public bool Fehler { get; set; }
+
+    public int Aufrufe { get; private set; }
+
+    public Task<bool> SperreHostAsync(string adresse, CancellationToken ct = default) => Setze(adresse, sperren: true);
+
+    public Task<bool> GibHostFreiAsync(string adresse, CancellationToken ct = default) => Setze(adresse, sperren: false);
+
+    public Task<IReadOnlyCollection<string>> GesperrteHostsAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyCollection<string>>(Gesperrt.ToList());
+
+    private Task<bool> Setze(string adresse, bool sperren)
+    {
+        Aufrufe++;
+        if (Fehler)
+        {
+            return Task.FromResult(false);
+        }
+
+        Gesperrt.Remove(adresse);
+        if (sperren)
+        {
+            Gesperrt.Add(adresse);
+        }
+
+        return Task.FromResult(true);
+    }
+}
+
 internal sealed class InMemoryProtokoll : IProtokoll
 {
     public List<ProtokollEintrag> Eintraege { get; } = [];

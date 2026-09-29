@@ -41,7 +41,9 @@ Danach läuft die Anwendung unter <http://127.0.0.1:8080>. Die Zugangsdaten gibt
 
 ## Live-Demo
 
-Die [Live-Demo](https://oktay-94.github.io/internetsteuerung-lab/) läuft komplett im Browser als Blazor-WebAssembly-App auf GitHub Pages. Die Sperrlogik ist derselbe `SperrService` wie in der Web-Anwendung. Simuliert sind nur Firewall, Datenbank und Schüler-PCs. Die Seite zeigt die OPNsense-API-Aufrufe (`toggleRule`, `apply`) mit, und mit einer benutzerdefinierten Sperre von 1 Minute sieht man die automatische Freigabe. Der Zustand gilt nur für den eigenen Browser und beginnt bei jedem Neuladen neu.
+Die [Live-Demo](https://oktay-94.github.io/internetsteuerung-lab/) läuft komplett im Browser als Blazor-WebAssembly-App auf GitHub Pages. Die Sperrlogik ist derselbe `SperrService` wie in der Web-Anwendung. Simuliert sind nur Firewall, Datenbank und die 20 Schüler-PCs des Raums. Die Seite zeigt die OPNsense-API-Aufrufe (`toggleRule`, `apply`, `alias_util`) mit, und mit einer benutzerdefinierten Sperre von 1 Minute sieht man die automatische Freigabe. Der Zustand gilt nur für den eigenen Browser und beginnt bei jedem Neuladen neu.
+
+**Einzelne PCs sperren:** Zusätzlich zur Raumsperre lässt sich jeder der 20 PCs einzeln sperren und freigeben. Auf der OPNsense geht das über einen Host-Alias (`einzelsperre_raum_a`), auf den eine Block-Regel verweist. `alias_util/add` und `alias_util/delete` wirken sofort im Paketfilter, ohne `apply`. Die Logik steckt als `PcSperrService` im Core und ist mit Unit-Tests abgedeckt. Die Oberfläche dafür gibt es bisher nur in der Demo. Web-Anwendung, WinForms-Client und Lab schalten weiterhin die Raumsperre wie im Original.
 
 ## Das Lab: ein virtueller Klassenraum
 
@@ -72,7 +74,7 @@ Die Fachlichkeit ist gleich geblieben. Technisch habe ich umgesetzt, was ich im 
 | Passwörter | SHA-256 ohne Salt | PBKDF2 mit Salt, alte Hashes werden beim Login umgestellt |
 | Regel schalten | `toggleRule` ohne Zielzustand | expliziter Zielzustand `toggleRule/{uuid}/{0\|1}` |
 | Nachvollziehbarkeit | keine | Protokoll: wer hat wann gesperrt, freigegeben oder es versucht |
-| Tests | manuell (curl, Ping) | 59 Unit-Tests, End-to-End-Test und Windows-Build in der CI, Live-Tests gegen echte OPNsense 26.7 |
+| Tests | manuell (curl, Ping) | 73 Unit-Tests, End-to-End-Test und Windows-Build in der CI, Live-Tests gegen echte OPNsense 26.7 |
 
 ## Technik
 
@@ -88,7 +90,7 @@ Die Fachlichkeit ist gleich geblieben. Technisch habe ich umgesetzt, was ich im 
 ## Projektstruktur
 
 ```
-src/Internetsteuerung.Core            Domäne und Logik (SperrService, AuthService, PasswortHasher)
+src/Internetsteuerung.Core            Domäne und Logik (SperrService, PcSperrService, AuthService, PasswortHasher)
 src/Internetsteuerung.Infrastructure  MariaDB, OpnsenseClient, Zertifikats-Pinning
 src/Internetsteuerung.Web             Blazor-Oberfläche, REST-API, Hintergrunddienst
 src/Internetsteuerung.WinForms        Desktop-Client
@@ -118,6 +120,6 @@ MIT, siehe [LICENSE](LICENSE).
 
 ---
 
-**English summary:** Portfolio rebuild of my final exam project as an application developer (German IHK, graded “good”). Teachers block and unblock a classroom’s internet access through the OPNsense REST API. C# and .NET 8 with a Blazor web UI and a WinForms client, MariaDB, a Docker Compose lab in which the block is enforced with nftables, a real OPNsense VM in QEMU, 59 unit tests and an end-to-end test in GitHub Actions. Live demo (Blazor WebAssembly, simulated firewall): <https://oktay-94.github.io/internetsteuerung-lab/>
+**English summary:** Portfolio rebuild of my final exam project as an application developer (German IHK, graded “good”). Teachers block and unblock a classroom’s internet access through the OPNsense REST API. C# and .NET 8 with a Blazor web UI and a WinForms client, MariaDB, a Docker Compose lab in which the block is enforced with nftables, a real OPNsense VM in QEMU, 73 unit tests and an end-to-end test in GitHub Actions. Live demo (Blazor WebAssembly, simulated firewall): <https://oktay-94.github.io/internetsteuerung-lab/>
 
 Oktay Akyüz · [LinkedIn](https://www.linkedin.com/in/oktay-akyuez) · [GitHub](https://github.com/Oktay-94)

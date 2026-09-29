@@ -103,6 +103,50 @@ public class DemoSimulationTests
     }
 
     [Fact]
+    public void Klassenraum_hat_20_pcs_mit_eindeutigen_adressen()
+    {
+        var a = new Aufbau();
+
+        Assert.Equal(20, a.Klassenraum.Pcs.Count);
+        Assert.Equal(20, a.Klassenraum.Pcs.Select(pc => pc.Adresse).Distinct().Count());
+        Assert.Equal("schueler-pc-01", a.Klassenraum.Pcs[0].Name);
+        Assert.Equal("10.20.10.120", a.Klassenraum.Pcs[^1].Adresse);
+    }
+
+    [Fact]
+    public async Task Einzelsperre_nimmt_nur_diesen_pc_offline_ohne_apply()
+    {
+        var a = new Aufbau();
+        var pc = a.Klassenraum.Pcs[4];
+        var pcSperren = new PcSperrService(a.Firewall, a.Speicher, a.Uhr);
+
+        var ergebnis = await pcSperren.SperrenAsync(a.Raum, pc.Arbeitsplatz, a.Lehrer);
+        await a.LaufeAsync(SimKlassenraum.Pruefintervall);
+
+        Assert.True(ergebnis.Erfolg);
+        Assert.False(pc.Online);
+        Assert.Equal(19, a.Klassenraum.Pcs.Count(p => p.Online));
+        var aufruf = Assert.Single(a.Firewall.Aufrufe);
+        Assert.Equal($"/api/firewall/alias_util/add/{SimFirewall.Alias}", aufruf.Pfad);
+        Assert.Equal("""{"address":"10.20.10.105"}""", aufruf.Anfrage);
+    }
+
+    [Fact]
+    public async Task Einzeln_gesperrter_pc_bleibt_nach_ende_der_raumsperre_offline()
+    {
+        var a = new Aufbau();
+        var pc = a.Klassenraum.Pcs[0];
+        await new PcSperrService(a.Firewall, a.Speicher, a.Uhr).SperrenAsync(a.Raum, pc.Arbeitsplatz, a.Lehrer);
+        await a.Sperren.SperrenAsync(a.Raum, a.Lehrer, 1);
+
+        await a.LaufeAsync(TimeSpan.FromMinutes(1) + SimKlassenraum.Pruefintervall);
+
+        Assert.False(a.Firewall.FilterAktiv);
+        Assert.False(pc.Online);
+        Assert.Equal(19, a.Klassenraum.Pcs.Count(p => p.Online));
+    }
+
+    [Fact]
     public async Task Protokoll_liefert_neueste_zuerst_und_begrenzt()
     {
         var speicher = new BrowserSpeicher();

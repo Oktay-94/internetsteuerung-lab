@@ -119,3 +119,28 @@ select, input { font: inherit; padding: 0.5rem 0.65rem; border: 1px solid var(--
 .laden { padding: 3rem; text-align: center; color: var(--text-leise); }
 #blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fdecec; color: #9b2c2c; padding: 0.7rem 1.25rem; }
 @media (max-width: 600px) { .kopf { flex-wrap: wrap; gap: 0.8rem; } .konto { margin-left: 0; } }
+
+/* Single-PC blocking */
+.raster + .pcs { margin-top: 1.25rem; }
+.pcs-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.pcs-zaehler { color: var(--text-leise); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.pc-raster { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 0.6rem; }
+.pc { display: grid; gap: 0.2rem; border: 1px solid var(--rand); border-left: 4px solid var(--grau); border-radius: 10px; padding: 0.6rem 0.7rem; }
+.pc.online { border-left-color: var(--gruen); }
+.pc.offline { border-left-color: var(--rot); }
+.pc.einzeln { background: #fdf3f3; }
+.pc-kopf { display: flex; align-items: center; gap: 0.45rem; }
+.pc .punkt { width: 10px; height: 10px; border-radius: 50%; background: var(--grau); flex: none; }
+.pc.online .punkt { background: var(--gruen); }
+.pc.offline .punkt { background: var(--rot); }
+.pc .name { font-weight: 600; font-size: 0.9rem; }
+.pc .adresse { color: var(--text-leise); font-size: 0.78rem; font-family: ui-monospace, monospace; }
+.pc .zustand { font-size: 0.8rem; }
+.pc.online .zustand { color: var(--gruen); }
+.pc.offline .zustand { color: var(--rot); }
+.knopf-pc { font: inherit; font-size: 0.8rem; font-weight: 600; margin-top: 0.3rem; padding: 0.3rem 0.5rem; border-radius: 7px; cursor: pointer; background: #fff; }
+.knopf-pc.sperren { border: 1px solid var(--rot); color: var(--rot); }
+.knopf-pc.freigeben { border: 1px solid var(--gruen); color: var(--gruen); }
+.knopf-pc:disabled { opacity: 0.55; cursor: progress; }
+.api-anfrage { grid-column: 2; color: var(--text-leise); }
+@media (max-width: 600px) { .pc-raster { grid-template-columns: repeat(2, 1fr); } }

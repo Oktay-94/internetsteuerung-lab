@@ -3,11 +3,13 @@ using Internetsteuerung.Core;
 namespace Internetsteuerung.Demo.Simulation;
 
 /// <summary>A simulated student PC with its last probe result.</summary>
-public sealed class SchuelerPc(string name, string adresse, DateTimeOffset erstePruefung)
+public sealed class SchuelerPc(Arbeitsplatz arbeitsplatz, DateTimeOffset erstePruefung)
 {
-    public string Name { get; } = name;
+    public Arbeitsplatz Arbeitsplatz { get; } = arbeitsplatz;
 
-    public string Adresse { get; } = adresse;
+    public string Name => Arbeitsplatz.Name;
+
+    public string Adresse => Arbeitsplatz.Adresse;
 
     public bool Online { get; internal set; } = true;
 
@@ -15,13 +17,13 @@ public sealed class SchuelerPc(string name, string adresse, DateTimeOffset erste
 }
 
 /// <summary>
-/// Student PCs of the classroom. Like the lab containers, each one probes the internet every
-/// 2 seconds, so a block shows up with a short delay and only after the firewall applied it.
+/// The 20 student PCs of the classroom. Like the lab containers, each one probes the internet
+/// every 2 seconds, so a block shows up with a short delay and only once the firewall enforces it.
 /// </summary>
 public sealed class SimKlassenraum
 {
+    public const int AnzahlPcs = 20;
     public static readonly TimeSpan Pruefintervall = TimeSpan.FromSeconds(2);
-    private const int AnzahlPcs = 6;
 
     private readonly SimFirewall _firewall;
     private readonly IClock _clock;
@@ -36,7 +38,8 @@ public sealed class SimKlassenraum
         {
             // Staggered probes, so the PCs go offline one after another as in the lab.
             var versatz = TimeSpan.FromMilliseconds(Pruefintervall.TotalMilliseconds * (i - 1) / AnzahlPcs);
-            _pcs.Add(new SchuelerPc($"schueler-pc-{i}", $"10.20.10.{100 + i}", start + versatz));
+            var arbeitsplatz = new Arbeitsplatz($"schueler-pc-{i:D2}", $"10.20.10.{100 + i}");
+            _pcs.Add(new SchuelerPc(arbeitsplatz, start + versatz));
         }
     }
 
@@ -48,7 +51,7 @@ public sealed class SimKlassenraum
         var jetzt = _clock.Now;
         foreach (var pc in _pcs.Where(pc => jetzt >= pc.NaechstePruefung))
         {
-            pc.Online = !_firewall.FilterAktiv;
+            pc.Online = !_firewall.FilterAktiv && !_firewall.IstHostGesperrt(pc.Adresse);
             pc.NaechstePruefung = jetzt + Pruefintervall;
         }
     }

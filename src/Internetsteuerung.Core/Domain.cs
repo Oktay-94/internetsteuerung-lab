@@ -19,6 +19,9 @@ public sealed record BenutzerMitHash(Benutzer Benutzer, string PasswortHash);
 /// </summary>
 public sealed record Raum(int Id, string Name, string FirewallRuleUuid);
 
+/// <summary>A student PC in a classroom, identified by its fixed IPv4 address.</summary>
+public sealed record Arbeitsplatz(string Name, string Adresse);
+
 /// <summary>A running block, persisted so the automatic release survives restarts.</summary>
 public sealed record AktiveSperre(int RaumId, DateTimeOffset GesperrtSeit, DateTimeOffset? Ende, string GesperrtVon);
 

@@ -1,6 +1,7 @@
 @page "/"
 @implements IDisposable
 @inject SperrService Sperren
+@inject PcSperrService PcSperren
 @inject IRaumRepository Raeume
 @inject IClock Clock
 @inject SimFirewall Firewall
@@ -55,46 +56,62 @@
             }
         </section>
 
-        <div class="spalte">
-            <section class="karte">
-                <h2>Schüler-PCs</h2>
-                <p class="hinweis">Jeder PC prüft alle 2 Sekunden seine Verbindung ins Internet.</p>
-                <ul class="clients">
-                    @foreach (var pc in Klassenraum.Pcs)
+        <section class="karte">
+            <h2>OPNsense-API</h2>
+            <p class="hinweis">Die Aufrufe, die die Anwendung an die Firewall schickt (simuliert).</p>
+            @if (Firewall.Aufrufe.Count == 0)
+            {
+                <p class="hinweis">Noch keine Aufrufe. Sperre den Raum oder einen einzelnen PC, dann erscheinen hier die Aufrufe.</p>
+            }
+            else
+            {
+                <ol class="api">
+                    @foreach (var a in Firewall.Aufrufe)
                     {
-                        <li class="@(pc.Online ? "online" : "offline")">
-                            <span class="punkt"></span>
-                            <span class="name">@pc.Name</span>
-                            <span class="adresse">@pc.Adresse</span>
-                            <span class="zustand">@(pc.Online ? "online" : "offline")</span>
+                        <li>
+                            <span class="api-zeit">@a.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</span>
+                            <code class="api-pfad">@a.Methode @a.Pfad</code>
+                            @if (a.Anfrage is not null)
+                            {
+                                <code class="api-anfrage">@a.Anfrage</code>
+                            }
+                            <code class="api-antwort">@a.Antwort</code>
                         </li>
                     }
-                </ul>
-            </section>
-
-            <section class="karte">
-                <h2>OPNsense-API</h2>
-                <p class="hinweis">Die Aufrufe, die die Anwendung an die Firewall schickt (simuliert).</p>
-                @if (Firewall.Aufrufe.Count == 0)
-                {
-                    <p class="hinweis">Noch keine Aufrufe. Sperre das Internet, dann erscheinen hier toggleRule und apply.</p>
-                }
-                else
-                {
-                    <ol class="api">
-                        @foreach (var a in Firewall.Aufrufe)
-                        {
-                            <li>
-                                <span class="api-zeit">@a.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</span>
-                                <code class="api-pfad">@a.Methode @a.Pfad</code>
-                                <code class="api-antwort">@a.Antwort</code>
-                            </li>
-                        }
-                    </ol>
-                }
-            </section>
-        </div>
+                </ol>
+            }
+        </section>
     </div>
+
+    <section class="karte pcs">
+        <div class="pcs-kopf">
+            <h2>Schüler-PCs</h2>
+            <span class="pcs-zaehler">@AnzahlOnline von @Klassenraum.Pcs.Count online · @AnzahlEinzeln einzeln gesperrt</span>
+        </div>
+        <p class="hinweis">Jeder PC prüft alle 2 Sekunden seine Verbindung ins Internet. Einzelne PCs sperrt die Anwendung über den Firewall-Alias <code>@SimFirewall.Alias</code>, unabhängig von der Raumsperre.</p>
+        @if (_pcMeldung is not null)
+        {
+            <p class="meldung @(_pcMeldungOk ? "ok" : "fehler")" role="status">@_pcMeldung</p>
+        }
+        <ul class="pc-raster">
+            @foreach (var pc in Klassenraum.Pcs)
+            {
+                var einzeln = Firewall.IstHostGesperrt(pc.Adresse);
+                <li class="pc @(pc.Online ? "online" : "offline") @(einzeln ? "einzeln" : null)">
+                    <div class="pc-kopf">
+                        <span class="punkt"></span>
+                        <span class="name">@pc.Name</span>
+                    </div>
+                    <span class="adresse">@pc.Adresse</span>
+                    <span class="zustand">@Zustand(pc, einzeln)</span>
+                    <button class="knopf-pc @(einzeln ? "freigeben" : "sperren")" type="button"
+                            disabled="@_pcBeschaeftigt.Contains(pc.Adresse)" @onclick="() => PcUmschaltenAsync(pc, einzeln)">
+                        @(_pcBeschaeftigt.Contains(pc.Adresse) ? "..." : einzeln ? "Freigeben" : "Sperren")
+                    </button>
+                </li>
+            }
+        </ul>
+    </section>
 }
 
 @code {
@@ -102,9 +119,16 @@
     private SperrStatus? _status;
     private string? _meldung;
     private bool _meldungOk;
+    private string? _pcMeldung;
+    private bool _pcMeldungOk;
     private bool _beschaeftigt;
+    private readonly HashSet<string> _pcBeschaeftigt = new(StringComparer.Ordinal);
     private int _auswahl = 15;
     private int _benutzerdefiniert = 1;
+
+    private int AnzahlOnline => Klassenraum.Pcs.Count(pc => pc.Online);
+
+    private int AnzahlEinzeln => Klassenraum.Pcs.Count(pc => Firewall.IstHostGesperrt(pc.Adresse));
 
     private string StatusKlasse => _status?.Gesperrt switch { true => "gesperrt", false => "aktiv", _ => "unbekannt" };
 
@@ -123,7 +147,7 @@
         {
             if (_status?.Gesperrt != true)
             {
-                return _status?.Gesperrt is null ? "Die Firewall-Regel wurde nicht gefunden." : "Keine Sperre aktiv";
+                return _status?.Gesperrt is null ? "Die Firewall-Regel wurde nicht gefunden." : "Keine Raumsperre aktiv";
             }
 
             var rest = _status.Restzeit(Clock.Now);
@@ -131,6 +155,19 @@
                 ? "Sperre aktiv (ohne automatische Aufhebung)"
                 : rest > TimeSpan.Zero ? $"Restzeit: {SperrDauer.FormatiereRestzeit(rest.Value)}" : "Sperre wird automatisch beendet ...";
         }
+    }
+
+    /// <summary>What the tile shows: the probe result plus why the PC is (or is about to be) offline.</summary>
+    private string Zustand(SchuelerPc pc, bool einzeln)
+    {
+        var sollOffline = einzeln || Firewall.FilterAktiv;
+        return (sollOffline, pc.Online) switch
+        {
+            (true, false) => einzeln ? "offline · einzeln gesperrt" : "offline · Raumsperre",
+            (true, true) => "wird gesperrt ...",
+            (false, false) => "wird freigegeben ...",
+            _ => "online",
+        };
     }
 
     protected override async Task OnInitializedAsync()
@@ -200,6 +237,27 @@
         finally
         {
             _beschaeftigt = false;
+        }
+    }
+
+    private async Task PcUmschaltenAsync(SchuelerPc pc, bool einzelnGesperrt)
+    {
+        if (_raum is null || Sitzung.Benutzer is not { } benutzer || !_pcBeschaeftigt.Add(pc.Adresse))
+        {
+            return;
+        }
+
+        try
+        {
+            var ergebnis = einzelnGesperrt
+                ? await PcSperren.FreigebenAsync(_raum, pc.Arbeitsplatz, benutzer.Benutzername)
+                : await PcSperren.SperrenAsync(_raum, pc.Arbeitsplatz, benutzer);
+            _pcMeldung = ergebnis.Meldung;
+            _pcMeldungOk = ergebnis.Erfolg;
+        }
+        finally
+        {
+            _pcBeschaeftigt.Remove(pc.Adresse);
         }
     }
 

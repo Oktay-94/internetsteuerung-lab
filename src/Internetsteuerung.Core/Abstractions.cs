@@ -27,6 +27,19 @@ public interface IFirewallClient
     Task<bool> ApplyAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Blocking single PCs: a host alias with the blocked addresses, referenced by a block rule
+/// (OPNsense: alias_util add/delete). Changes take effect in the packet filter without apply.
+/// </summary>
+public interface IHostSperreClient
+{
+    Task<bool> SperreHostAsync(string adresse, CancellationToken ct = default);
+
+    Task<bool> GibHostFreiAsync(string adresse, CancellationToken ct = default);
+
+    Task<IReadOnlyCollection<string>> GesperrteHostsAsync(CancellationToken ct = default);
+}
+
 public interface IBenutzerRepository
 {
     Task<BenutzerMitHash?> FindeAktivenAsync(string benutzername, CancellationToken ct = default);
