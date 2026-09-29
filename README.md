@@ -12,9 +12,9 @@ Portfolio-Nachbau meines IHK-Abschlussprojekts (Fachinformatiker Anwendungsentwi
 
 **▶ Live-Demo: <https://oktay-94.github.io/internetsteuerung-lab/>** (läuft im Browser, Demo-Zugang ist eingetragen)
 
-![Demo: Anmeldung, 15-Minuten-Sperre, Schüler-PCs gehen offline, Protokoll, Freigabe](docs/demo.gif)
+![Live-Demo: Anmeldung, zwei PCs einzeln sperren, Raumsperre mit Countdown, automatische Freigabe, Protokoll](docs/demo.gif)
 
-*Demo im Lab: Nach „Internet sperren“ verlieren beide Schüler-PCs ihre Verbindung, der Countdown läuft, das Protokoll hält jede Aktion fest.*
+*Live-Demo: Zwei PCs werden einzeln gesperrt, danach der ganze Raum für 1 Minute. Nach Ablauf gibt die Anwendung den Raum automatisch frei, die einzeln gesperrten PCs bleiben gesperrt. Rechts laufen die OPNsense-API-Aufrufe mit.*
 
 ---
 
@@ -57,6 +57,14 @@ Das Container-Netz bildet die physische Testumgebung aus dem Projekt nach, mit d
 | `mariadb` | Datenbank `internetsteuerung` | Backend-Netz |
 
 Das LAN ist als `internal` angelegt. Jedes Paket ins Internet muss durch den Firewall-Container. Ist die Regel aktiv, sind die Schüler-PCs messbar offline. Details und Diagramme stehen in [docs/architektur.md](docs/architektur.md).
+
+<details>
+<summary>Aufnahme aus dem Lab: die Web-Anwendung gegen die echte Sperre im Container-Netz</summary>
+
+![Web-Anwendung im Docker-Lab: 15-Minuten-Sperre, beide Schüler-Container gehen offline, Protokoll, Freigabe](docs/lab-webanwendung.gif)
+
+Hier ist nichts simuliert: Nach „Internet sperren“ verlieren die beiden Schüler-Container ihre Verbindung ins Internet, weil der Firewall-Container sie per nftables blockiert.
+</details>
 
 **Gegen die echte OPNsense** läuft der Client ebenfalls: [docs/opnsense-vm.md](docs/opnsense-vm.md) beschreibt eine OPNsense-VM in QEMU, gegen die derselbe Code die echte API schaltet.
 
