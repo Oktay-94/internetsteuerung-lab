@@ -1,0 +1,35 @@
+@inherits LayoutComponentBase
+
+<header class="kopf">
+    <div class="marke">
+        <span class="marke-punkt"></span>
+        <div>
+            <div class="marke-titel">Internetsteuerung</div>
+            <div class="marke-unter">Schulungsraum A · OPNsense</div>
+        </div>
+    </div>
+    <AuthorizeView>
+        <Authorized>
+            <nav class="navigation">
+                <NavLink href="/" Match="NavLinkMatch.All">Steuerung</NavLink>
+                <NavLink href="/protokoll">Protokoll</NavLink>
+            </nav>
+            <div class="konto">
+                <span>@context.User.Identity?.Name</span>
+                <span class="rolle">@context.User.FindFirst(ClaimTypes.Role)?.Value</span>
+                <form method="post" action="/konto/abmelden">
+                    <AntiforgeryToken />
+                    <button class="knopf-klein" type="submit">Abmelden</button>
+                </form>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</header>
+
+<main class="inhalt">
+    @Body
+</main>
+
+<footer class="fuss">
+    Portfolio-Nachbau eines IHK-Abschlussprojekts · Demo-Umgebung mit simulierter Firewall
+</footer>

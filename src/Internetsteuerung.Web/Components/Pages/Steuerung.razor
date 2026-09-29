@@ -1,0 +1,222 @@
+@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IDisposable
+@inject SperrService Sperren
+@inject IRaumRepository Raeume
+@inject IClock Clock
+@inject LabClientStatus LabClients
+@inject IOptions<WebOptions> Optionen
+
+<PageTitle>Steuerung · Internetsteuerung</PageTitle>
+
+@if (_raum is null)
+{
+    <section class="karte"><p>@(_ladeFehler ?? "Raumkonfiguration wird geladen ...")</p></section>
+}
+else
+{
+    <div class="raster">
+        <section class="karte status @StatusKlasse">
+            <div class="status-kopf">
+                <span class="ampel" aria-hidden="true"></span>
+                <h1>@StatusText</h1>
+            </div>
+            <p class="raum">@_raum.Name · Regel „Internet-Sperre Raum A“</p>
+
+            <div class="countdown" aria-live="polite">@CountdownText</div>
+
+            @if (_status?.Gesperrt != true)
+            {
+                <div class="dauer">
+                    <label for="dauer">Sperrdauer</label>
+                    <select id="dauer" @bind="_auswahl" disabled="@_beschaeftigt">
+                        <option value="0">Keine Zeitsteuerung</option>
+                        @foreach (var minuten in SperrDauer.Vordefiniert)
+                        {
+                            <option value="@minuten">@minuten Minuten</option>
+                        }
+                        <option value="-1">Benutzerdefiniert</option>
+                    </select>
+                    @if (_auswahl == -1)
+                    {
+                        <input type="number" min="1" max="@SperrDauer.MaximumMinuten" @bind="_benutzerdefiniert" disabled="@_beschaeftigt" aria-label="Minuten" />
+                        <span>Minuten</span>
+                    }
+                </div>
+            }
+
+            <button class="knopf gross @(_status?.Gesperrt == true ? "freigeben" : "sperren")"
+                    disabled="@(_beschaeftigt || _status?.Gesperrt is null)" @onclick="UmschaltenAsync">
+                @KnopfText
+            </button>
+
+            @if (_meldung is not null)
+            {
+                <p class="meldung @(_meldungOk ? "ok" : "fehler")" role="status">@_meldung</p>
+            }
+        </section>
+
+        <section class="karte">
+            <h2>Schüler-PCs im Lab</h2>
+            <p class="hinweis">Jeder Container prüft alle 2 Sekunden eine Verbindung ins Internet (1.1.1.1:443).</p>
+            @if (_clients.Count == 0)
+            {
+                <p class="hinweis">Noch keine Meldungen. Läuft das Lab mit <code>docker compose up</code>?</p>
+            }
+            else
+            {
+                <ul class="clients">
+                    @foreach (var c in _clients)
+                    {
+                        var veraltet = Clock.Now - c.ZuletztGemeldet > TimeSpan.FromSeconds(10);
+                        <li class="@(veraltet ? "unbekannt" : c.Online ? "online" : "offline")">
+                            <span class="punkt"></span>
+                            <span class="name">@c.Name</span>
+                            <span class="adresse">@c.Adresse</span>
+                            <span class="zustand">@(veraltet ? "keine Meldung" : c.Online ? "online" : "offline")</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private Raum? _raum;
+    private SperrStatus? _status;
+    private string? _ladeFehler;
+    private string? _meldung;
+    private bool _meldungOk;
+    private bool _beschaeftigt;
+    private int _auswahl = 0;
+    private int _benutzerdefiniert = SperrDauer.StandardBenutzerdefiniert;
+    private IReadOnlyList<LabClientStatus.LabClient> _clients = [];
+    private PeriodicTimer? _takt;
+    private readonly CancellationTokenSource _stopp = new();
+    private int _tick;
+
+    private string StatusKlasse => _status?.Gesperrt switch { true => "gesperrt", false => "aktiv", _ => "unbekannt" };
+
+    private string StatusText => _status?.Gesperrt switch
+    {
+        true => "Status: Internet GESPERRT",
+        false => "Status: Internet AKTIV",
+        _ => "Status: unbekannt",
+    };
+
+    private string KnopfText => _beschaeftigt ? "Bitte warten ..." : _status?.Gesperrt == true ? "Internet freigeben" : "Internet sperren";
+
+    private string CountdownText
+    {
+        get
+        {
+            if (_status?.Gesperrt != true)
+            {
+                return _status?.Gesperrt is null ? "Die Firewall-Regel wurde nicht gefunden." : "Keine Sperre aktiv";
+            }
+
+            var rest = _status.Restzeit(Clock.Now);
+            return rest is null
+                ? "Sperre aktiv (ohne automatische Aufhebung)"
+                : rest > TimeSpan.Zero ? $"Restzeit: {SperrDauer.FormatiereRestzeit(rest.Value)}" : "Sperre wird automatisch beendet ...";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _raum = await Raeume.GetAktivenAsync(Optionen.Value.RaumId);
+        if (_raum is null)
+        {
+            _ladeFehler = "Für diesen Raum ist keine aktive Konfiguration hinterlegt.";
+            return;
+        }
+
+        await LadeStatusAsync();
+        _clients = LabClients.Alle();
+        _takt = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = TaktAsync();
+    }
+
+    /// <summary>Every second: countdown and lab clients. Every 3 seconds: state from the firewall.</summary>
+    private async Task TaktAsync()
+    {
+        try
+        {
+            while (_takt is not null && await _takt.WaitForNextTickAsync(_stopp.Token))
+            {
+                _clients = LabClients.Alle();
+                if (++_tick % 3 == 0 && !_beschaeftigt)
+                {
+                    await LadeStatusAsync();
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // page closed
+        }
+    }
+
+    private async Task LadeStatusAsync()
+    {
+        if (_raum is not null)
+        {
+            _status = await Sperren.GetStatusAsync(_raum, _stopp.Token);
+        }
+    }
+
+    private async Task UmschaltenAsync()
+    {
+        if (_raum is null || _status?.Gesperrt is null)
+        {
+            return;
+        }
+
+        _beschaeftigt = true;
+        _meldung = null;
+        try
+        {
+            var benutzer = await AktuellerBenutzerAsync();
+            SperrErgebnis ergebnis;
+            if (_status.Gesperrt == true)
+            {
+                ergebnis = await Sperren.FreigebenAsync(_raum, benutzer.Benutzername);
+            }
+            else
+            {
+                var minuten = _auswahl == -1 ? _benutzerdefiniert : _auswahl;
+                ergebnis = await Sperren.SperrenAsync(_raum, benutzer, minuten);
+            }
+
+            _meldung = ergebnis.Meldung;
+            _meldungOk = ergebnis.Erfolg;
+            await LadeStatusAsync();
+        }
+        finally
+        {
+            _beschaeftigt = false;
+        }
+    }
+
+    private async Task<Benutzer> AktuellerBenutzerAsync()
+    {
+        var user = (await AuthState).User;
+        var id = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!, System.Globalization.CultureInfo.InvariantCulture);
+        var rolle = Enum.Parse<Rolle>(user.FindFirstValue(ClaimTypes.Role)!);
+        return new Benutzer(id, user.Identity!.Name!, rolle);
+    }
+
+    public void Dispose()
+    {
+        _stopp.Cancel();
+        _takt?.Dispose();
+        _stopp.Dispose();
+    }
+}

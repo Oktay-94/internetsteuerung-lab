@@ -1,0 +1,42 @@
+@page "/protokoll"
+@attribute [Authorize]
+@inject IProtokoll ProtokollQuelle
+
+<PageTitle>Protokoll · Internetsteuerung</PageTitle>
+
+<section class="karte">
+    <h1>Protokoll</h1>
+    <p class="hinweis">Die letzten 100 Aktionen: wer hat wann gesperrt oder freigegeben.</p>
+    <table class="tabelle">
+        <thead>
+            <tr><th>Zeitpunkt (UTC)</th><th>Akteur</th><th>Aktion</th><th>Details</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var e in _eintraege)
+            {
+                <tr class="aktion-@e.Aktion.ToString().ToLowerInvariant()">
+                    <td>@e.Zeitpunkt.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</td>
+                    <td>@e.Akteur</td>
+                    <td>@Text(e.Aktion)</td>
+                    <td>@e.Details</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    private IReadOnlyList<ProtokollEintrag> _eintraege = [];
+
+    protected override async Task OnInitializedAsync() => _eintraege = await ProtokollQuelle.LetzteAsync(100);
+
+    private static string Text(ProtokollAktion aktion) => aktion switch
+    {
+        ProtokollAktion.Anmeldung => "Anmeldung",
+        ProtokollAktion.AnmeldungFehlgeschlagen => "Anmeldung fehlgeschlagen",
+        ProtokollAktion.Gesperrt => "Gesperrt",
+        ProtokollAktion.Freigegeben => "Freigegeben",
+        ProtokollAktion.AutomatischFreigegeben => "Automatisch freigegeben",
+        _ => "Fehler",
+    };
+}

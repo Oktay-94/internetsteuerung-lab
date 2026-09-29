@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+lab/.env
+.env
+*.pfx
+*.pem
+.DS_Store

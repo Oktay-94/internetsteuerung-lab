@@ -1,0 +1,30 @@
+@page "/anmelden"
+@attribute [AllowAnonymous]
+
+<PageTitle>Anmelden · Internetsteuerung</PageTitle>
+
+<section class="karte anmeldung">
+    <h1>Anmelden</h1>
+    <p class="hinweis">Nur für Lehrkräfte mit aktivem Konto.</p>
+
+    @if (Fehler)
+    {
+        <p class="meldung fehler" role="alert">Benutzername oder Passwort ist falsch oder der Benutzer ist nicht aktiv.</p>
+    }
+
+    <form method="post" action="/konto/anmelden">
+        <AntiforgeryToken />
+        <label for="benutzername">Benutzername</label>
+        <input id="benutzername" name="benutzername" autocomplete="username" required autofocus />
+        <label for="passwort">Passwort</label>
+        <input id="passwort" name="passwort" type="password" autocomplete="current-password" required />
+        <button class="knopf" type="submit">Anmelden</button>
+    </form>
+</section>
+
+@code {
+    [SupplyParameterFromQuery(Name = "fehler")]
+    private int? FehlerCode { get; set; }
+
+    private bool Fehler => FehlerCode == 1;
+}

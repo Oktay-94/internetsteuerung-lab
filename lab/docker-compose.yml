@@ -1,0 +1,95 @@
+# Virtual classroom network, modelled on the physical test setup of the original project:
+#   LAN 10.20.0.0/16  ->  firewall 10.20.0.1 (router, NAT, block rule, REST API)  ->  WAN
+#   teacher app 10.20.0.10 (static), student PCs from the former DHCP pool 10.20.10.100-200
+name: internetsteuerung-lab
+
+services:
+  firewall:
+    build: { context: .., dockerfile: Dockerfile, target: firewall }
+    cap_add: [NET_ADMIN]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    environment:
+      SIM_API_KEY: ${OPNSENSE_API_KEY:?siehe scripts/lab.sh}
+      SIM_API_SECRET: ${OPNSENSE_API_SECRET:?siehe scripts/lab.sh}
+      SIM_RULE_UUID: ${REGEL_UUID:?siehe scripts/lab.sh}
+      SIM_NFT: "true"
+    networks:
+      wan: {}
+      lan: { ipv4_address: 10.20.0.1 }
+    volumes: [shared:/shared]
+    healthcheck:
+      test: ["CMD", "test", "-s", "/shared/fw-cert.sha256"]
+      interval: 2s
+      retries: 30
+
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: internetsteuerung
+      MARIADB_USER: internetsteuerung
+      MARIADB_PASSWORD: ${DB_PASSWORT:?siehe scripts/lab.sh}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORT:?siehe scripts/lab.sh}
+    volumes:
+      - ./mariadb:/docker-entrypoint-initdb.d:ro
+      - db:/var/lib/mysql
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 40
+
+  web:
+    build: { context: .., dockerfile: Dockerfile, target: web }
+    depends_on:
+      firewall: { condition: service_healthy }
+      mariadb: { condition: service_healthy }
+    environment:
+      Firewall__BaseUrl: https://10.20.0.1
+      Firewall__ApiKey: ${OPNSENSE_API_KEY}
+      Firewall__ApiSecret: ${OPNSENSE_API_SECRET}
+      Firewall__ZertifikatSha256Datei: /shared/fw-cert.sha256
+      Datenbank__ConnectionString: Server=mariadb;Port=3306;Database=internetsteuerung;User ID=internetsteuerung;Password=${DB_PASSWORT}
+      Lab__Aktiv: "true"
+      Lab__RegelUuid: ${REGEL_UUID}
+      Lab__Benutzer__0__Name: lehrer
+      Lab__Benutzer__0__Passwort: ${LEHRER_PASSWORT:?siehe scripts/lab.sh}
+      Lab__Benutzer__0__Rolle: Lehrer
+      Lab__Benutzer__1__Name: admin
+      Lab__Benutzer__1__Passwort: ${ADMIN_PASSWORT:?siehe scripts/lab.sh}
+      Lab__Benutzer__1__Rolle: Admin
+    ports: ["127.0.0.1:8080:8080"]
+    networks:
+      lan: { ipv4_address: 10.20.0.10 }
+      backend: {}
+    volumes: [shared:/shared:ro]
+
+  schueler-pc-1:
+    build: { context: .., dockerfile: Dockerfile, target: client }
+    hostname: schueler-pc-1
+    cap_add: [NET_ADMIN]
+    depends_on: [web]
+    networks:
+      lan: { ipv4_address: 10.20.10.101 }
+
+  schueler-pc-2:
+    build: { context: .., dockerfile: Dockerfile, target: client }
+    hostname: schueler-pc-2
+    cap_add: [NET_ADMIN]
+    depends_on: [web]
+    networks:
+      lan: { ipv4_address: 10.20.10.102 }
+
+networks:
+  lan:
+    internal: true          # no direct way out: every packet to the internet must pass the firewall
+    ipam:
+      config:
+        - subnet: 10.20.0.0/16
+          gateway: 10.20.255.254
+  wan: {}
+  backend: {}
+
+volumes:
+  shared: {}
+  db: {}
