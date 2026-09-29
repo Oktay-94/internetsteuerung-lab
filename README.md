@@ -105,6 +105,10 @@ docs/                                 Architektur, OPNsense-VM
 
 Dies ist ein eigenständiger Nachbau für mein Portfolio. Er enthält keinen Code, keine Daten und keine Dokumentation aus dem ursprünglichen Kundenprojekt. Firmen und Personen des Originals sind bewusst nicht genannt.
 
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE).
+
 ---
 
 **English summary:** Portfolio rebuild of my final exam project as an application developer (German IHK, graded “good”). Teachers block and unblock a classroom’s internet access through the OPNsense REST API. C# and .NET 8 with a Blazor web UI and a WinForms client, MariaDB, a Docker Compose lab in which the block is enforced with nftables, a real OPNsense VM in QEMU, 49 unit tests and an end-to-end test in GitHub Actions.
