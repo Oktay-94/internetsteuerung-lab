@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Internetsteuerung.Core\Internetsteuerung.Core.csproj" />
     <ProjectReference Include="..\..\src\Internetsteuerung.Infrastructure\Internetsteuerung.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Internetsteuerung.Demo\Internetsteuerung.Demo.csproj" />
   </ItemGroup>
 
 </Project>

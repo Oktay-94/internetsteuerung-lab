@@ -1,0 +1,46 @@
+@inherits LayoutComponentBase
+@inject DemoSitzung Sitzung
+@inject NavigationManager Navigation
+
+<header class="kopf">
+    <div class="marke">
+        <span class="marke-punkt"></span>
+        <div>
+            <div class="marke-titel">Internetsteuerung</div>
+            <div class="marke-unter">Schulungsraum A · OPNsense</div>
+        </div>
+    </div>
+    @if (Sitzung.Benutzer is { } benutzer)
+    {
+        <nav class="navigation">
+            <NavLink href="" Match="NavLinkMatch.All">Steuerung</NavLink>
+            <NavLink href="protokoll">Protokoll</NavLink>
+        </nav>
+        <div class="konto">
+            <span>@benutzer.Benutzername</span>
+            <span class="rolle">@benutzer.Rolle</span>
+            <button class="knopf-klein" type="button" @onclick="Abmelden">Abmelden</button>
+        </div>
+    }
+</header>
+
+<div class="demo-hinweis">
+    <strong>Live-Demo im Browser.</strong> Firewall, Datenbank und Schüler-PCs sind hier simuliert, die Sperrlogik ist derselbe C#-Code wie im Projekt.
+    Den echten Aufbau mit Docker-Lab und OPNsense-VM zeigt das <a href="https://github.com/Oktay-94/internetsteuerung-lab">Repository auf GitHub</a>.
+</div>
+
+<main class="inhalt">
+    @Body
+</main>
+
+<footer class="fuss">
+    Portfolio-Nachbau eines IHK-Abschlussprojekts · Oktay Akyüz · C# und .NET 8 (Blazor WebAssembly)
+</footer>
+
+@code {
+    private void Abmelden()
+    {
+        Sitzung.Abmelden();
+        Navigation.NavigateTo("anmelden");
+    }
+}

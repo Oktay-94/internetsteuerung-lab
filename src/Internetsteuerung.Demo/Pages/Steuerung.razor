@@ -1,0 +1,207 @@
+@page "/"
+@implements IDisposable
+@inject SperrService Sperren
+@inject IRaumRepository Raeume
+@inject IClock Clock
+@inject SimFirewall Firewall
+@inject SimKlassenraum Klassenraum
+@inject DemoTakt Takt
+@inject DemoSitzung Sitzung
+@inject NavigationManager Navigation
+
+<PageTitle>Steuerung · Internetsteuerung Demo</PageTitle>
+
+@if (_raum is not null)
+{
+    <div class="raster">
+        <section class="karte status @StatusKlasse">
+            <div class="status-kopf">
+                <span class="ampel" aria-hidden="true"></span>
+                <h1>@StatusText</h1>
+            </div>
+            <p class="raum">@_raum.Name · Regel „Internet-Sperre Raum A“</p>
+
+            <div class="countdown" aria-live="polite">@CountdownText</div>
+
+            @if (_status?.Gesperrt != true)
+            {
+                <div class="dauer">
+                    <label for="dauer">Sperrdauer</label>
+                    <select id="dauer" @bind="_auswahl" disabled="@_beschaeftigt">
+                        <option value="0">Keine Zeitsteuerung</option>
+                        @foreach (var minuten in SperrDauer.Vordefiniert)
+                        {
+                            <option value="@minuten">@minuten Minuten</option>
+                        }
+                        <option value="-1">Benutzerdefiniert</option>
+                    </select>
+                    @if (_auswahl == -1)
+                    {
+                        <input type="number" min="1" max="@SperrDauer.MaximumMinuten" @bind="_benutzerdefiniert" disabled="@_beschaeftigt" aria-label="Minuten" />
+                        <span>Minuten</span>
+                    }
+                </div>
+                <p class="hinweis">Tipp: „Benutzerdefiniert“ mit 1 Minute zeigt die automatische Freigabe.</p>
+            }
+
+            <button class="knopf gross @(_status?.Gesperrt == true ? "freigeben" : "sperren")"
+                    disabled="@(_beschaeftigt || _status?.Gesperrt is null)" @onclick="UmschaltenAsync">
+                @KnopfText
+            </button>
+
+            @if (_meldung is not null)
+            {
+                <p class="meldung @(_meldungOk ? "ok" : "fehler")" role="status">@_meldung</p>
+            }
+        </section>
+
+        <div class="spalte">
+            <section class="karte">
+                <h2>Schüler-PCs</h2>
+                <p class="hinweis">Jeder PC prüft alle 2 Sekunden seine Verbindung ins Internet.</p>
+                <ul class="clients">
+                    @foreach (var pc in Klassenraum.Pcs)
+                    {
+                        <li class="@(pc.Online ? "online" : "offline")">
+                            <span class="punkt"></span>
+                            <span class="name">@pc.Name</span>
+                            <span class="adresse">@pc.Adresse</span>
+                            <span class="zustand">@(pc.Online ? "online" : "offline")</span>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            <section class="karte">
+                <h2>OPNsense-API</h2>
+                <p class="hinweis">Die Aufrufe, die die Anwendung an die Firewall schickt (simuliert).</p>
+                @if (Firewall.Aufrufe.Count == 0)
+                {
+                    <p class="hinweis">Noch keine Aufrufe. Sperre das Internet, dann erscheinen hier toggleRule und apply.</p>
+                }
+                else
+                {
+                    <ol class="api">
+                        @foreach (var a in Firewall.Aufrufe)
+                        {
+                            <li>
+                                <span class="api-zeit">@a.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</span>
+                                <code class="api-pfad">@a.Methode @a.Pfad</code>
+                                <code class="api-antwort">@a.Antwort</code>
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    private Raum? _raum;
+    private SperrStatus? _status;
+    private string? _meldung;
+    private bool _meldungOk;
+    private bool _beschaeftigt;
+    private int _auswahl = 15;
+    private int _benutzerdefiniert = 1;
+
+    private string StatusKlasse => _status?.Gesperrt switch { true => "gesperrt", false => "aktiv", _ => "unbekannt" };
+
+    private string StatusText => _status?.Gesperrt switch
+    {
+        true => "Status: Internet GESPERRT",
+        false => "Status: Internet AKTIV",
+        _ => "Status: unbekannt",
+    };
+
+    private string KnopfText => _beschaeftigt ? "Bitte warten ..." : _status?.Gesperrt == true ? "Internet freigeben" : "Internet sperren";
+
+    private string CountdownText
+    {
+        get
+        {
+            if (_status?.Gesperrt != true)
+            {
+                return _status?.Gesperrt is null ? "Die Firewall-Regel wurde nicht gefunden." : "Keine Sperre aktiv";
+            }
+
+            var rest = _status.Restzeit(Clock.Now);
+            return rest is null
+                ? "Sperre aktiv (ohne automatische Aufhebung)"
+                : rest > TimeSpan.Zero ? $"Restzeit: {SperrDauer.FormatiereRestzeit(rest.Value)}" : "Sperre wird automatisch beendet ...";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Sitzung.Benutzer is null)
+        {
+            Navigation.NavigateTo("anmelden");
+            return;
+        }
+
+        _raum = await Raeume.GetAktivenAsync(BrowserSpeicher.RaumId);
+        await LadeStatusAsync();
+        Takt.Geaendert += BeimTakt;
+    }
+
+    private void BeimTakt() => _ = InvokeAsync(async () =>
+    {
+        if (!_beschaeftigt)
+        {
+            var warGesperrt = _status?.Gesperrt == true;
+            await LadeStatusAsync();
+            if (warGesperrt && _status?.Gesperrt == false)
+            {
+                // Released by the timer, not by a click: replace the stale "gesperrt" message.
+                _meldung = "Sperrzeit abgelaufen, Internet automatisch freigegeben.";
+                _meldungOk = true;
+            }
+        }
+
+        StateHasChanged();
+    });
+
+    private async Task LadeStatusAsync()
+    {
+        if (_raum is not null)
+        {
+            _status = await Sperren.GetStatusAsync(_raum);
+        }
+    }
+
+    private async Task UmschaltenAsync()
+    {
+        if (_raum is null || _status?.Gesperrt is null || Sitzung.Benutzer is not { } benutzer)
+        {
+            return;
+        }
+
+        _beschaeftigt = true;
+        _meldung = null;
+        try
+        {
+            SperrErgebnis ergebnis;
+            if (_status.Gesperrt == true)
+            {
+                ergebnis = await Sperren.FreigebenAsync(_raum, benutzer.Benutzername);
+            }
+            else
+            {
+                var minuten = _auswahl == -1 ? _benutzerdefiniert : _auswahl;
+                ergebnis = await Sperren.SperrenAsync(_raum, benutzer, minuten);
+            }
+
+            _meldung = ergebnis.Meldung;
+            _meldungOk = ergebnis.Erfolg;
+            await LadeStatusAsync();
+        }
+        finally
+        {
+            _beschaeftigt = false;
+        }
+    }
+
+    public void Dispose() => Takt.Geaendert -= BeimTakt;
+}

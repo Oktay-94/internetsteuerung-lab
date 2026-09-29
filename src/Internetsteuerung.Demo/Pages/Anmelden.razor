@@ -1,0 +1,39 @@
+@page "/anmelden"
+@inject DemoSitzung Sitzung
+@inject NavigationManager Navigation
+
+<PageTitle>Anmelden · Internetsteuerung Demo</PageTitle>
+
+<section class="karte anmeldung">
+    <h1>Anmelden</h1>
+    <p class="hinweis">Nur für Lehrkräfte mit aktivem Konto.</p>
+    <p class="demo-zugang">Demo-Zugang: <code>@DemoSitzung.DemoBenutzername</code> / <code>@DemoSitzung.DemoPasswort</code> (bereits eingetragen)</p>
+
+    @if (_fehler)
+    {
+        <p class="meldung fehler" role="alert">Benutzername oder Passwort ist falsch oder der Benutzer ist nicht aktiv.</p>
+    }
+
+    <form @onsubmit="AnmeldenAsync">
+        <label for="benutzername">Benutzername</label>
+        <input id="benutzername" @bind="_benutzername" autocomplete="username" required />
+        <label for="passwort">Passwort</label>
+        <input id="passwort" type="password" @bind="_passwort" autocomplete="current-password" required />
+        <button class="knopf" type="submit">Anmelden</button>
+    </form>
+</section>
+
+@code {
+    private string _benutzername = DemoSitzung.DemoBenutzername;
+    private string _passwort = DemoSitzung.DemoPasswort;
+    private bool _fehler;
+
+    private async Task AnmeldenAsync()
+    {
+        _fehler = !await Sitzung.AnmeldenAsync(_benutzername, _passwort);
+        if (!_fehler)
+        {
+            Navigation.NavigateTo("");
+        }
+    }
+}

@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpnsenseSim", "src\Opnsense
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Internetsteuerung.Web", "src\Internetsteuerung.Web\Internetsteuerung.Web.csproj", "{140BEFC3-F7B6-4235-9C6F-5882B97AF38A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Internetsteuerung.Demo", "src\Internetsteuerung.Demo\Internetsteuerung.Demo.csproj", "{62942501-5AC2-4A0A-9D34-22DC5C6F4745}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{140BEFC3-F7B6-4235-9C6F-5882B97AF38A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{140BEFC3-F7B6-4235-9C6F-5882B97AF38A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{140BEFC3-F7B6-4235-9C6F-5882B97AF38A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62942501-5AC2-4A0A-9D34-22DC5C6F4745}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62942501-5AC2-4A0A-9D34-22DC5C6F4745}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62942501-5AC2-4A0A-9D34-22DC5C6F4745}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62942501-5AC2-4A0A-9D34-22DC5C6F4745}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C9C3E4D9-8A6D-4469-96B0-1A8A73EC995C} = {CA103E12-5EA8-4ED3-B661-57A0E29A7CD7}
@@ -53,5 +59,6 @@ Global
 		{BA61E5E0-1E5B-4689-BE69-E39194FDC174} = {C59371BF-9C12-4ADC-9ED4-344F6C4B5343}
 		{2FCFF55B-6E15-477D-84B4-80F01FADC13D} = {CA103E12-5EA8-4ED3-B661-57A0E29A7CD7}
 		{140BEFC3-F7B6-4235-9C6F-5882B97AF38A} = {CA103E12-5EA8-4ED3-B661-57A0E29A7CD7}
+		{62942501-5AC2-4A0A-9D34-22DC5C6F4745} = {CA103E12-5EA8-4ED3-B661-57A0E29A7CD7}
 	EndGlobalSection
 EndGlobal

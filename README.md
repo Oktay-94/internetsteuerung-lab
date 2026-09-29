@@ -10,6 +10,8 @@ Portfolio-Nachbau meines IHK-Abschlussprojekts (Fachinformatiker Anwendungsentwi
 ![OPNsense](https://img.shields.io/badge/OPNsense-REST--API-D94F00?style=flat-square)
 ![Docker](https://img.shields.io/badge/Lab-Docker%20Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 
+**▶ Live-Demo: <https://oktay-94.github.io/internetsteuerung-lab/>** (läuft im Browser, Demo-Zugang ist eingetragen)
+
 ![Demo: Anmeldung, 15-Minuten-Sperre, Schüler-PCs gehen offline, Protokoll, Freigabe](docs/demo.gif)
 
 *Demo im Lab: Nach „Internet sperren“ verlieren beide Schüler-PCs ihre Verbindung, der Countdown läuft, das Protokoll hält jede Aktion fest.*
@@ -36,6 +38,10 @@ scripts/lab.sh down    # alles entfernen
 ```
 
 Danach läuft die Anwendung unter <http://127.0.0.1:8080>. Die Zugangsdaten gibt `scripts/lab.sh up` aus. Sie werden bei jeder Installation zufällig erzeugt und stehen nur in `lab/.env`, die nicht im Repository liegt.
+
+## Live-Demo
+
+Die [Live-Demo](https://oktay-94.github.io/internetsteuerung-lab/) läuft komplett im Browser als Blazor-WebAssembly-App auf GitHub Pages. Die Sperrlogik ist derselbe `SperrService` wie in der Web-Anwendung. Simuliert sind nur Firewall, Datenbank und Schüler-PCs. Die Seite zeigt die OPNsense-API-Aufrufe (`toggleRule`, `apply`) mit, und mit einer benutzerdefinierten Sperre von 1 Minute sieht man die automatische Freigabe. Der Zustand gilt nur für den eigenen Browser und beginnt bei jedem Neuladen neu.
 
 ## Das Lab: ein virtueller Klassenraum
 
@@ -66,7 +72,7 @@ Die Fachlichkeit ist gleich geblieben. Technisch habe ich umgesetzt, was ich im 
 | Passwörter | SHA-256 ohne Salt | PBKDF2 mit Salt, alte Hashes werden beim Login umgestellt |
 | Regel schalten | `toggleRule` ohne Zielzustand | expliziter Zielzustand `toggleRule/{uuid}/{0\|1}` |
 | Nachvollziehbarkeit | keine | Protokoll: wer hat wann gesperrt, freigegeben oder es versucht |
-| Tests | manuell (curl, Ping) | 49 Unit-Tests, End-to-End-Test und Windows-Build in der CI, Live-Tests gegen echte OPNsense 26.7 |
+| Tests | manuell (curl, Ping) | 59 Unit-Tests, End-to-End-Test und Windows-Build in der CI, Live-Tests gegen echte OPNsense 26.7 |
 
 ## Technik
 
@@ -87,6 +93,7 @@ src/Internetsteuerung.Infrastructure  MariaDB, OpnsenseClient, Zertifikats-Pinni
 src/Internetsteuerung.Web             Blazor-Oberfläche, REST-API, Hintergrunddienst
 src/Internetsteuerung.WinForms        Desktop-Client
 src/OpnsenseSim                       OPNsense-kompatible API für das Lab
+src/Internetsteuerung.Demo            Live-Demo (Blazor WebAssembly, Simulation im Browser)
 tests/Internetsteuerung.Tests         Unit-Tests
 lab/                                  Docker Compose, Firewall- und Client-Container, Schema
 scripts/                              lab.sh, opnsense-vm.sh
@@ -111,6 +118,6 @@ MIT, siehe [LICENSE](LICENSE).
 
 ---
 
-**English summary:** Portfolio rebuild of my final exam project as an application developer (German IHK, graded “good”). Teachers block and unblock a classroom’s internet access through the OPNsense REST API. C# and .NET 8 with a Blazor web UI and a WinForms client, MariaDB, a Docker Compose lab in which the block is enforced with nftables, a real OPNsense VM in QEMU, 49 unit tests and an end-to-end test in GitHub Actions.
+**English summary:** Portfolio rebuild of my final exam project as an application developer (German IHK, graded “good”). Teachers block and unblock a classroom’s internet access through the OPNsense REST API. C# and .NET 8 with a Blazor web UI and a WinForms client, MariaDB, a Docker Compose lab in which the block is enforced with nftables, a real OPNsense VM in QEMU, 59 unit tests and an end-to-end test in GitHub Actions. Live demo (Blazor WebAssembly, simulated firewall): <https://oktay-94.github.io/internetsteuerung-lab/>
 
 Oktay Akyüz · [LinkedIn](https://www.linkedin.com/in/oktay-akyuez) · [GitHub](https://github.com/Oktay-94)

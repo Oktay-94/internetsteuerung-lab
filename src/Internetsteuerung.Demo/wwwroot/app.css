@@ -1,0 +1,121 @@
+:root {
+    --hintergrund: #f4f5f7;
+    --karte: #ffffff;
+    --text: #1e222a;
+    --text-leise: #6b727e;
+    --rand: #e3e6eb;
+    --kopf: #1e222a;
+    --akzent: #158a8e;
+    --gruen: #1f9d55;
+    --rot: #d64545;
+    --grau: #9aa1ad;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--hintergrund);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.kopf {
+    background: var(--kopf);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 0.9rem 1.5rem;
+}
+
+.marke { display: flex; align-items: center; gap: 0.75rem; }
+.marke-punkt { width: 14px; height: 14px; border-radius: 50%; background: var(--akzent); box-shadow: 0 0 0 4px rgba(21, 138, 142, 0.25); }
+.marke-titel { font-weight: 700; letter-spacing: 0.2px; }
+.marke-unter { font-size: 0.8rem; color: #aeb5c1; }
+
+.navigation { display: flex; gap: 1rem; }
+.navigation a { color: #c8ced8; text-decoration: none; padding: 0.3rem 0.1rem; border-bottom: 2px solid transparent; }
+.navigation a.active { color: #fff; border-bottom-color: var(--akzent); }
+
+.konto { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.konto form { margin: 0; }
+.rolle { background: rgba(255, 255, 255, 0.12); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; }
+
+.inhalt { flex: 1; width: 100%; max-width: 1100px; margin: 2rem auto; padding: 0 1.25rem; }
+.fuss { text-align: center; color: var(--text-leise); font-size: 0.8rem; padding: 1.25rem; }
+
+.karte { background: var(--karte); border: 1px solid var(--rand); border-radius: 14px; padding: 1.5rem 1.75rem; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.raster { display: grid; grid-template-columns: 3fr 2fr; gap: 1.25rem; align-items: start; }
+@media (max-width: 860px) { .raster { grid-template-columns: 1fr; } }
+
+h1 { font-size: 1.45rem; margin: 0; }
+h2 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+.hinweis { color: var(--text-leise); font-size: 0.9rem; }
+
+.status { border-top: 6px solid var(--grau); }
+.status.aktiv { border-top-color: var(--gruen); }
+.status.gesperrt { border-top-color: var(--rot); }
+.status-kopf { display: flex; align-items: center; gap: 0.8rem; }
+.ampel { width: 22px; height: 22px; border-radius: 50%; background: var(--grau); flex: none; }
+.aktiv .ampel { background: var(--gruen); box-shadow: 0 0 0 6px rgba(31, 157, 85, 0.18); }
+.gesperrt .ampel { background: var(--rot); box-shadow: 0 0 0 6px rgba(214, 69, 69, 0.18); }
+.raum { color: var(--text-leise); margin: 0.4rem 0 1.25rem; }
+
+.countdown { font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0.5rem 0 1.25rem; }
+.aktiv .countdown { font-size: 1.1rem; font-weight: 500; color: var(--text-leise); }
+
+.dauer { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+select, input { font: inherit; padding: 0.5rem 0.65rem; border: 1px solid var(--rand); border-radius: 8px; background: #fff; }
+.dauer input { width: 6rem; }
+
+.knopf, .knopf-klein { font: inherit; border: none; border-radius: 10px; cursor: pointer; }
+.knopf { background: var(--akzent); color: #fff; padding: 0.7rem 1.2rem; font-weight: 600; }
+.knopf.gross { width: 100%; padding: 1rem; font-size: 1.1rem; }
+.knopf.sperren { background: var(--rot); }
+.knopf.freigeben { background: var(--gruen); }
+.knopf:disabled { opacity: 0.55; cursor: progress; }
+.knopf-klein { background: rgba(255, 255, 255, 0.12); color: #fff; padding: 0.35rem 0.8rem; }
+
+.meldung { margin-top: 1rem; padding: 0.7rem 0.9rem; border-radius: 8px; }
+.meldung.ok { background: #e8f6ee; color: #146c3b; }
+.meldung.fehler { background: #fdecec; color: #9b2c2c; }
+
+.anmeldung { max-width: 420px; margin: 3rem auto; }
+.anmeldung form { display: grid; gap: 0.5rem; margin-top: 1rem; }
+.anmeldung .knopf { margin-top: 0.75rem; }
+
+.clients { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.clients li { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "punkt name zustand" "punkt adresse zustand"; column-gap: 0.7rem; align-items: center; border: 1px solid var(--rand); border-radius: 10px; padding: 0.6rem 0.8rem; }
+.clients .punkt { grid-area: punkt; width: 12px; height: 12px; border-radius: 50%; background: var(--grau); }
+.clients .name { grid-area: name; font-weight: 600; }
+.clients .adresse { grid-area: adresse; color: var(--text-leise); font-size: 0.8rem; font-family: ui-monospace, monospace; }
+.clients .zustand { grid-area: zustand; font-size: 0.85rem; }
+.clients .online .punkt { background: var(--gruen); }
+.clients .offline .punkt { background: var(--rot); }
+.clients .online .zustand { color: var(--gruen); }
+.clients .offline .zustand { color: var(--rot); }
+
+.tabelle { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+.tabelle th, .tabelle td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--rand); }
+.tabelle th { color: var(--text-leise); font-weight: 600; }
+.aktion-gesperrt td:nth-child(3) { color: var(--rot); font-weight: 600; }
+.aktion-freigegeben td:nth-child(3), .aktion-automatischfreigegeben td:nth-child(3) { color: var(--gruen); font-weight: 600; }
+.aktion-fehler td:nth-child(3), .aktion-anmeldungfehlgeschlagen td:nth-child(3) { color: #b7791f; }
+
+/* Demo additions */
+.demo-hinweis { background: #fff8e6; border-bottom: 1px solid #f0dfb0; color: #6b5310; font-size: 0.88rem; padding: 0.6rem 1.5rem; text-align: center; }
+.demo-hinweis a { color: inherit; }
+.demo-zugang { background: #eef7f7; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.9rem; }
+.spalte { display: grid; gap: 1.25rem; }
+.api { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; font-size: 0.8rem; }
+.api li { display: grid; grid-template-columns: auto 1fr; column-gap: 0.6rem; row-gap: 0.15rem; border: 1px solid var(--rand); border-radius: 8px; padding: 0.45rem 0.6rem; }
+.api-zeit { color: var(--text-leise); font-variant-numeric: tabular-nums; }
+.api-pfad { overflow-wrap: anywhere; }
+.api-antwort { grid-column: 2; color: var(--gruen); }
+.laden { padding: 3rem; text-align: center; color: var(--text-leise); }
+#blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fdecec; color: #9b2c2c; padding: 0.7rem 1.25rem; }
+@media (max-width: 600px) { .kopf { flex-wrap: wrap; gap: 0.8rem; } .konto { margin-left: 0; } }
