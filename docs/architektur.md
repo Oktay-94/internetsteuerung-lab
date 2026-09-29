@@ -2,7 +2,7 @@
 
 ## Netz des Labs
 
-Nachbildung der physischen Testumgebung aus dem IHK-Projekt als Container-Netz. Adressen wie im Original: Firewall `10.20.0.1/16`, Lehrer-PC statisch, Schüler-PCs aus dem früheren DHCP-Pool `10.20.10.100–200`.
+Nachbildung der physischen Testumgebung aus dem IHK-Projekt als Container-Netz. Adressen wie im Original: Firewall `10.20.0.1/16`, Lehrer-PC statisch, Schüler-PCs aus dem früheren DHCP-Pool `10.20.10.100 bis 200`.
 
 ```mermaid
 flowchart LR

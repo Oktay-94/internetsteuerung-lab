@@ -66,7 +66,7 @@ Die Fachlichkeit ist gleich geblieben. Technisch habe ich umgesetzt, was ich im 
 | Passwörter | SHA-256 ohne Salt | PBKDF2 mit Salt, alte Hashes werden beim Login umgestellt |
 | Regel schalten | `toggleRule` ohne Zielzustand | expliziter Zielzustand `toggleRule/{uuid}/{0\|1}` |
 | Nachvollziehbarkeit | keine | Protokoll: wer hat wann gesperrt, freigegeben oder es versucht |
-| Tests | manuell (curl, Ping) | 49 Unit-Tests, End-to-End-Test und Windows-Build in der CI |
+| Tests | manuell (curl, Ping) | 49 Unit-Tests, End-to-End-Test und Windows-Build in der CI, Live-Tests gegen echte OPNsense 26.7 |
 
 ## Technik
 

@@ -88,6 +88,7 @@ public sealed class OpnsenseClientTests
     public async Task Apply_ist_nur_bei_status_ok_erfolgreich()
     {
         Assert.True(await Erzeuge(_ => Json("""{"status":"ok"}""")).Client.ApplyAsync());
+        Assert.True(await Erzeuge(_ => Json("""{"status":"OK\n\n"}""")).Client.ApplyAsync()); // real OPNsense 26.7
         Assert.False(await Erzeuge(_ => Json("""{"status":"failed"}""")).Client.ApplyAsync());
         Assert.False(await Erzeuge(_ => Json("{}", HttpStatusCode.Unauthorized)).Client.ApplyAsync());
     }

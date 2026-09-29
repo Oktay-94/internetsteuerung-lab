@@ -17,6 +17,7 @@ DISK="$VM_DIR/opnsense-lab.qcow2"
 PID="$VM_DIR/qemu.pid"
 KONSOLE="$VM_DIR/console.log"
 PORT="${OPNSENSE_HOST_PORT:-8443}"
+KONSOLE_PORT="${OPNSENSE_CONSOLE_PORT:-4555}"   # serial console, e.g. nc 127.0.0.1 4555
 
 laeuft() { [[ -f "$PID" ]] && kill -0 "$(cat "$PID")" 2>/dev/null; }
 
@@ -37,7 +38,9 @@ case "${1:-}" in
             -device virtio-net-pci,netdev=lan \
             -netdev user,id=wan \
             -device virtio-net-pci,netdev=wan \
-            -display none -serial file:"$KONSOLE" \
+            -display none \
+            -chardev "socket,id=ser0,host=127.0.0.1,port=${KONSOLE_PORT},server=on,wait=off,logfile=${KONSOLE}" \
+            -serial chardev:ser0 \
             -daemonize -pidfile "$PID"
         echo "VM gestartet (PID $(cat "$PID")). Konsole: $KONSOLE"
         echo "Weboberfläche nach dem Boot: https://127.0.0.1:${PORT}"
