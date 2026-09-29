@@ -3,6 +3,7 @@
 @inject SperrService Sperren
 @inject PcSperrService PcSperren
 @inject IRaumRepository Raeume
+@inject ISperreSpeicher Speicher
 @inject IClock Clock
 @inject SimFirewall Firewall
 @inject SimKlassenraum Klassenraum
@@ -14,68 +15,126 @@
 
 @if (_raum is not null)
 {
-    <div class="raster">
-        <section class="karte status @StatusKlasse">
+    <div class="seitenkopf">
+        <div>
+            <p class="eyebrow">@_raum.Name</p>
+            <h1>Steuerung</h1>
+        </div>
+        <p class="seitenkopf-meta"><Icon Name="activity" Groesse="16" /> Regel <code>Internet-Sperre Raum A</code> · Alias <code>@SimFirewall.Alias</code></p>
+    </div>
+
+    <ul class="kennzahlen" aria-label="Überblick">
+        <li class="kennzahl @(AnzahlOffline == 0 ? "kennzahl-gut" : null)">
+            <span class="kennzahl-label"><Icon Name="wifi" Groesse="16" /> Online</span>
+            <span class="kennzahl-wert">@AnzahlOnline<small> / @Klassenraum.Pcs.Count</small></span>
+        </li>
+        <li class="kennzahl @(AnzahlOffline > 0 ? "kennzahl-schlecht" : null)">
+            <span class="kennzahl-label"><Icon Name="wifi-off" Groesse="16" /> Offline</span>
+            <span class="kennzahl-wert">@AnzahlOffline</span>
+        </li>
+        <li class="kennzahl @(AnzahlEinzeln > 0 ? "kennzahl-warnung" : null)">
+            <span class="kennzahl-label"><Icon Name="monitor" Groesse="16" /> Einzeln gesperrt</span>
+            <span class="kennzahl-wert">@AnzahlEinzeln</span>
+        </li>
+        <li class="kennzahl @(Gesperrt ? "kennzahl-schlecht" : "kennzahl-gut")">
+            <span class="kennzahl-label"><Icon Name="shield" Groesse="16" /> Raumregel</span>
+            <span class="kennzahl-wert kennzahl-text">@(Gesperrt ? "Aktiv" : "Inaktiv")</span>
+        </li>
+    </ul>
+
+    <div class="dashboard">
+        <section class="panel status-panel @StatusKlasse" aria-labelledby="status-titel">
             <div class="status-kopf">
-                <span class="ampel" aria-hidden="true"></span>
-                <h1>@StatusText</h1>
+                <span class="status-symbol"><Icon Name="@(Gesperrt ? "wifi-off" : "wifi")" Groesse="28" /></span>
+                <div class="status-text">
+                    <p class="eyebrow">Internetzugang des Raums</p>
+                    <h2 id="status-titel" class="status-titel">@StatusText</h2>
+                </div>
+                <span class="pill @(Gesperrt ? "pill-rot" : "pill-gruen")">
+                    <Icon Name="@(Gesperrt ? "lock" : "check")" Groesse="14" /> @(Gesperrt ? "Regel aktiv" : "Regel inaktiv")
+                </span>
             </div>
-            <p class="raum">@_raum.Name · Regel „Internet-Sperre Raum A“</p>
 
-            <div class="countdown" aria-live="polite">@CountdownText</div>
-
-            @if (_status?.Gesperrt != true)
+            @if (Gesperrt)
             {
-                <div class="dauer">
-                    <label for="dauer">Sperrdauer</label>
-                    <select id="dauer" @bind="_auswahl" disabled="@_beschaeftigt">
-                        <option value="0">Keine Zeitsteuerung</option>
+                <div class="countdown-block">
+                    <span class="countdown-label"><Icon Name="clock" Groesse="16" /> @(Restzeit is null ? "Ohne Zeitlimit" : "Restzeit")</span>
+                    <span class="countdown">@CountdownText</span>
+                    @if (Anteil is { } anteil)
+                    {
+                        <div class="fortschritt" role="progressbar" aria-label="Verbleibende Sperrzeit" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@((int)(anteil * 100))">
+                            <div class="fortschritt-balken" style="width: @((anteil * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                        </div>
+                    }
+                    <p class="status-meta">@SperrMeta</p>
+                </div>
+            }
+            else
+            {
+                <fieldset class="dauerwahl" disabled="@_beschaeftigt">
+                    <legend>Sperrdauer</legend>
+                    <div class="chips">
                         @foreach (var minuten in SperrDauer.Vordefiniert)
                         {
-                            <option value="@minuten">@minuten Minuten</option>
+                            <button type="button" class="chip" aria-pressed="@(_auswahl == minuten ? "true" : "false")" @onclick="() => _auswahl = minuten">@minuten Min.</button>
                         }
-                        <option value="-1">Benutzerdefiniert</option>
-                    </select>
+                        <button type="button" class="chip" aria-pressed="@(_auswahl == 0 ? "true" : "false")" @onclick="() => _auswahl = 0">Ohne Limit</button>
+                        <button type="button" class="chip" aria-pressed="@(_auswahl == -1 ? "true" : "false")" @onclick="() => _auswahl = -1">Eigene</button>
+                    </div>
                     @if (_auswahl == -1)
                     {
-                        <input type="number" min="1" max="@SperrDauer.MaximumMinuten" @bind="_benutzerdefiniert" disabled="@_beschaeftigt" aria-label="Minuten" />
-                        <span>Minuten</span>
+                        <label class="eigene-dauer">
+                            <input type="number" min="1" max="@SperrDauer.MaximumMinuten" @bind="_benutzerdefiniert" />
+                            <span>Minuten</span>
+                        </label>
                     }
-                </div>
-                <p class="hinweis">Tipp: „Benutzerdefiniert“ mit 1 Minute zeigt die automatische Freigabe.</p>
+                    <p class="panel-hinweis">Tipp für die Demo: „Eigene“ mit 1 Minute zeigt die automatische Freigabe.</p>
+                </fieldset>
             }
 
-            <button class="knopf gross @(_status?.Gesperrt == true ? "freigeben" : "sperren")"
+            <button class="knopf knopf-gross @(Gesperrt ? "knopf-gruen" : "knopf-rot")" type="button"
                     disabled="@(_beschaeftigt || _status?.Gesperrt is null)" @onclick="UmschaltenAsync">
+                <Icon Name="@(Gesperrt ? "lock-open" : "lock")" Groesse="20" />
                 @KnopfText
             </button>
 
             @if (_meldung is not null)
             {
-                <p class="meldung @(_meldungOk ? "ok" : "fehler")" role="status">@_meldung</p>
+                <p class="meldung @(_meldungOk ? "meldung-ok" : "meldung-fehler")" role="status">
+                    <Icon Name="@(_meldungOk ? "check" : "alert")" Groesse="16" /> @_meldung
+                </p>
             }
         </section>
 
-        <section class="karte">
-            <h2>OPNsense-API</h2>
-            <p class="hinweis">Die Aufrufe, die die Anwendung an die Firewall schickt (simuliert).</p>
+        <section class="panel konsole" aria-labelledby="konsole-titel">
+            <div class="panel-kopf">
+                <h2 id="konsole-titel"><Icon Name="terminal" /> OPNsense-API</h2>
+                <span class="live"><span class="live-punkt"></span> simuliert</span>
+            </div>
+            <p class="panel-hinweis">Jeder Aufruf, den die Anwendung an die Firewall schickt. Die neuesten stehen oben.</p>
             @if (Firewall.Aufrufe.Count == 0)
             {
-                <p class="hinweis">Noch keine Aufrufe. Sperre den Raum oder einen einzelnen PC, dann erscheinen hier die Aufrufe.</p>
+                <div class="leer">
+                    <Icon Name="terminal" Groesse="28" />
+                    <p>Noch keine Aufrufe. Sperre den Raum oder einen einzelnen PC.</p>
+                </div>
             }
             else
             {
-                <ol class="api">
+                <ol class="log">
                     @foreach (var a in Firewall.Aufrufe)
                     {
                         <li>
-                            <span class="api-zeit">@a.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</span>
-                            <code class="api-pfad">@a.Methode @a.Pfad</code>
+                            <div class="log-zeile">
+                                <span class="methode">@a.Methode</span>
+                                <code class="log-pfad">@a.Pfad</code>
+                                <time class="log-zeit">@a.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</time>
+                            </div>
                             @if (a.Anfrage is not null)
                             {
-                                <code class="api-anfrage">@a.Anfrage</code>
+                                <code class="log-anfrage"><span aria-hidden="true">→ </span>@a.Anfrage</code>
                             }
-                            <code class="api-antwort">@a.Antwort</code>
+                            <code class="log-antwort"><span aria-hidden="true">← </span>@a.Antwort</code>
                         </li>
                     }
                 </ol>
@@ -83,30 +142,40 @@
         </section>
     </div>
 
-    <section class="karte pcs">
-        <div class="pcs-kopf">
-            <h2>Schüler-PCs</h2>
-            <span class="pcs-zaehler">@AnzahlOnline von @Klassenraum.Pcs.Count online · @AnzahlEinzeln einzeln gesperrt</span>
+    <section class="panel pcs" aria-labelledby="pcs-titel">
+        <div class="panel-kopf">
+            <h2 id="pcs-titel"><Icon Name="monitor" /> Schüler-PCs</h2>
+            <ul class="legende" aria-label="Legende">
+                <li><span class="legende-punkt online"></span> online</li>
+                <li><span class="legende-punkt offline"></span> offline</li>
+                <li><span class="legende-punkt einzeln"></span> einzeln gesperrt</li>
+            </ul>
         </div>
-        <p class="hinweis">Jeder PC prüft alle 2 Sekunden seine Verbindung ins Internet. Einzelne PCs sperrt die Anwendung über den Firewall-Alias <code>@SimFirewall.Alias</code>, unabhängig von der Raumsperre.</p>
+        <p class="panel-hinweis">Jeder PC prüft alle 2 Sekunden seine Verbindung. Einzelne PCs sperrt die Anwendung über den Alias <code>@SimFirewall.Alias</code>, unabhängig von der Raumsperre.</p>
+
         @if (_pcMeldung is not null)
         {
-            <p class="meldung @(_pcMeldungOk ? "ok" : "fehler")" role="status">@_pcMeldung</p>
+            <p class="meldung @(_pcMeldungOk ? "meldung-ok" : "meldung-fehler")" role="status">
+                <Icon Name="@(_pcMeldungOk ? "check" : "alert")" Groesse="16" /> @_pcMeldung
+            </p>
         }
+
         <ul class="pc-raster">
             @foreach (var pc in Klassenraum.Pcs)
             {
                 var einzeln = Firewall.IstHostGesperrt(pc.Adresse);
-                <li class="pc @(pc.Online ? "online" : "offline") @(einzeln ? "einzeln" : null)">
-                    <div class="pc-kopf">
-                        <span class="punkt"></span>
-                        <span class="name">@pc.Name</span>
+                var beschaeftigt = _pcBeschaeftigt.Contains(pc.Adresse);
+                <li class="pc @(pc.Online ? "pc-online" : "pc-offline") @(einzeln ? "pc-einzeln" : null)">
+                    <div class="pc-oben">
+                        <span class="pc-icon"><Icon Name="@(pc.Online ? "monitor" : "ban")" Groesse="18" /></span>
+                        <span class="pc-nummer">PC @pc.Name[^2..]</span>
                     </div>
-                    <span class="adresse">@pc.Adresse</span>
-                    <span class="zustand">@Zustand(pc, einzeln)</span>
-                    <button class="knopf-pc @(einzeln ? "freigeben" : "sperren")" type="button"
-                            disabled="@_pcBeschaeftigt.Contains(pc.Adresse)" @onclick="() => PcUmschaltenAsync(pc, einzeln)">
-                        @(_pcBeschaeftigt.Contains(pc.Adresse) ? "..." : einzeln ? "Freigeben" : "Sperren")
+                    <code class="pc-adresse">@pc.Adresse</code>
+                    <span class="pc-zustand">@Zustand(pc, einzeln)</span>
+                    <button class="pc-knopf @(einzeln ? "pc-knopf-frei" : null)" type="button" disabled="@beschaeftigt"
+                            aria-label="@($"{pc.Name} {(einzeln ? "freigeben" : "sperren")}")" @onclick="() => PcUmschaltenAsync(pc, einzeln)">
+                        <Icon Name="@(einzeln ? "lock-open" : "lock")" Groesse="15" />
+                        @(beschaeftigt ? "..." : einzeln ? "Freigeben" : "Sperren")
                     </button>
                 </li>
             }
@@ -117,6 +186,7 @@
 @code {
     private Raum? _raum;
     private SperrStatus? _status;
+    private AktiveSperre? _sperre;
     private string? _meldung;
     private bool _meldungOk;
     private string? _pcMeldung;
@@ -126,34 +196,63 @@
     private int _auswahl = 15;
     private int _benutzerdefiniert = 1;
 
+    private bool Gesperrt => _status?.Gesperrt == true;
+
     private int AnzahlOnline => Klassenraum.Pcs.Count(pc => pc.Online);
+
+    private int AnzahlOffline => Klassenraum.Pcs.Count - AnzahlOnline;
 
     private int AnzahlEinzeln => Klassenraum.Pcs.Count(pc => Firewall.IstHostGesperrt(pc.Adresse));
 
-    private string StatusKlasse => _status?.Gesperrt switch { true => "gesperrt", false => "aktiv", _ => "unbekannt" };
+    private string StatusKlasse => _status?.Gesperrt switch { true => "ist-gesperrt", false => "ist-frei", _ => "ist-unbekannt" };
 
     private string StatusText => _status?.Gesperrt switch
     {
-        true => "Status: Internet GESPERRT",
-        false => "Status: Internet AKTIV",
-        _ => "Status: unbekannt",
+        true => "Internet gesperrt",
+        false => "Internet freigegeben",
+        _ => "Regel nicht gefunden",
     };
 
-    private string KnopfText => _beschaeftigt ? "Bitte warten ..." : _status?.Gesperrt == true ? "Internet freigeben" : "Internet sperren";
+    private string KnopfText => _beschaeftigt ? "Bitte warten ..." : Gesperrt ? "Internet freigeben" : "Internet sperren";
 
-    private string CountdownText
+    private TimeSpan? Restzeit => _status?.Restzeit(Clock.Now);
+
+    private string CountdownText => Restzeit switch
+    {
+        null => "∞",
+        { } rest when rest > TimeSpan.Zero => SperrDauer.FormatiereRestzeit(rest),
+        _ => "00:00",
+    };
+
+    /// <summary>Share of the block that is still left, for the progress bar. Null without an end time.</summary>
+    private double? Anteil
     {
         get
         {
-            if (_status?.Gesperrt != true)
+            if (_sperre?.Ende is not { } ende || Restzeit is not { } rest)
             {
-                return _status?.Gesperrt is null ? "Die Firewall-Regel wurde nicht gefunden." : "Keine Raumsperre aktiv";
+                return null;
             }
 
-            var rest = _status.Restzeit(Clock.Now);
-            return rest is null
-                ? "Sperre aktiv (ohne automatische Aufhebung)"
-                : rest > TimeSpan.Zero ? $"Restzeit: {SperrDauer.FormatiereRestzeit(rest.Value)}" : "Sperre wird automatisch beendet ...";
+            var gesamt = (ende - _sperre.GesperrtSeit).TotalSeconds;
+            return gesamt > 0 ? Math.Clamp(rest.TotalSeconds / gesamt, 0, 1) : 0;
+        }
+    }
+
+    private string SperrMeta
+    {
+        get
+        {
+            if (_sperre is null)
+            {
+                return "";
+            }
+
+            var seit = _sperre.GesperrtSeit.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            var text = $"Gesperrt von {_sperre.GesperrtVon} um {seit} Uhr";
+            return _sperre.Ende is { } ende
+                ? $"{text}, automatische Freigabe um {ende.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)} Uhr"
+                : $"{text}, Freigabe nur per Klick";
         }
     }
 
@@ -163,10 +262,10 @@
         var sollOffline = einzeln || Firewall.FilterAktiv;
         return (sollOffline, pc.Online) switch
         {
-            (true, false) => einzeln ? "offline · einzeln gesperrt" : "offline · Raumsperre",
-            (true, true) => "wird gesperrt ...",
-            (false, false) => "wird freigegeben ...",
-            _ => "online",
+            (true, false) => einzeln ? "Einzeln gesperrt" : "Raumsperre",
+            (true, true) => "Wird gesperrt ...",
+            (false, false) => "Wird freigegeben ...",
+            _ => "Online",
         };
     }
 
@@ -187,7 +286,7 @@
     {
         if (!_beschaeftigt)
         {
-            var warGesperrt = _status?.Gesperrt == true;
+            var warGesperrt = Gesperrt;
             await LadeStatusAsync();
             if (warGesperrt && _status?.Gesperrt == false)
             {
@@ -205,6 +304,7 @@
         if (_raum is not null)
         {
             _status = await Sperren.GetStatusAsync(_raum);
+            _sperre = Gesperrt ? await Speicher.GetAsync(_raum.Id) : null;
         }
     }
 
@@ -220,7 +320,7 @@
         try
         {
             SperrErgebnis ergebnis;
-            if (_status.Gesperrt == true)
+            if (Gesperrt)
             {
                 ergebnis = await Sperren.FreigebenAsync(_raum, benutzer.Benutzername);
             }

@@ -4,36 +4,73 @@
 
 <PageTitle>Anmelden · Internetsteuerung Demo</PageTitle>
 
-<section class="karte anmeldung">
-    <h1>Anmelden</h1>
-    <p class="hinweis">Nur für Lehrkräfte mit aktivem Konto.</p>
-    <p class="demo-zugang">Demo-Zugang: <code>@DemoSitzung.DemoBenutzername</code> / <code>@DemoSitzung.DemoPasswort</code> (bereits eingetragen)</p>
+<div class="anmeldung">
+    <section class="anmeldung-intro">
+        <p class="eyebrow">Portfolio-Projekt · IHK-Abschlussprojekt, neu gebaut</p>
+        <h1>Internet im Schulungsraum per Klick sperren</h1>
+        <p class="anmeldung-lead">
+            Lehrkräfte sperren den Internetzugang eines Raums für Prüfungen oder Stillarbeit, ohne die Firewall-Oberfläche zu kennen.
+            Die Anwendung schaltet dafür Regeln einer OPNsense-Firewall über deren REST-API.
+        </p>
+        <ul class="merkmale">
+            <li><span class="merkmal-icon"><Icon Name="clock" /></span><span><strong>Raumsperre mit Countdown</strong> und automatischer Freigabe nach Ablauf</span></li>
+            <li><span class="merkmal-icon"><Icon Name="monitor" /></span><span><strong>20 PCs einzeln sperrbar</strong> über einen Firewall-Alias</span></li>
+            <li><span class="merkmal-icon"><Icon Name="terminal" /></span><span><strong>API-Aufrufe live</strong>: toggleRule, apply und alias_util</span></li>
+        </ul>
+        <ul class="tags" aria-label="Technik">
+            <li>C# / .NET 8</li>
+            <li>Blazor WebAssembly</li>
+            <li>OPNsense REST-API</li>
+            <li>73 Unit-Tests</li>
+        </ul>
+    </section>
 
-    @if (_fehler)
-    {
-        <p class="meldung fehler" role="alert">Benutzername oder Passwort ist falsch oder der Benutzer ist nicht aktiv.</p>
-    }
+    <section class="panel anmeldung-karte" aria-labelledby="anmelden-titel">
+        <h2 id="anmelden-titel">Anmelden</h2>
+        <p class="panel-hinweis">Nur für Lehrkräfte mit aktivem Konto.</p>
 
-    <form @onsubmit="AnmeldenAsync">
-        <label for="benutzername">Benutzername</label>
-        <input id="benutzername" @bind="_benutzername" autocomplete="username" required />
-        <label for="passwort">Passwort</label>
-        <input id="passwort" type="password" @bind="_passwort" autocomplete="current-password" required />
-        <button class="knopf" type="submit">Anmelden</button>
-    </form>
-</section>
+        <div class="demo-zugang">
+            <Icon Name="info" Groesse="16" />
+            <p>Demo-Zugang ist eingetragen: <code>@DemoSitzung.DemoBenutzername</code> / <code>@DemoSitzung.DemoPasswort</code></p>
+        </div>
+
+        @if (_fehler)
+        {
+            <p class="meldung meldung-fehler" role="alert"><Icon Name="alert" Groesse="16" /> Benutzername oder Passwort ist falsch oder der Benutzer ist nicht aktiv.</p>
+        }
+
+        <form class="formular" @onsubmit="AnmeldenAsync">
+            <label for="benutzername">Benutzername</label>
+            <input id="benutzername" @bind="_benutzername" autocomplete="username" required />
+            <label for="passwort">Passwort</label>
+            <input id="passwort" type="password" @bind="_passwort" autocomplete="current-password" required />
+            <button class="knopf knopf-primaer knopf-breit" type="submit" disabled="@_laeuft">
+                <Icon Name="log-in" /> @(_laeuft ? "Anmeldung läuft ..." : "Anmelden")
+            </button>
+        </form>
+    </section>
+</div>
 
 @code {
     private string _benutzername = DemoSitzung.DemoBenutzername;
     private string _passwort = DemoSitzung.DemoPasswort;
     private bool _fehler;
+    private bool _laeuft;
 
     private async Task AnmeldenAsync()
     {
-        _fehler = !await Sitzung.AnmeldenAsync(_benutzername, _passwort);
-        if (!_fehler)
+        _laeuft = true;
+        try
         {
-            Navigation.NavigateTo("");
+            _fehler = !await Sitzung.AnmeldenAsync(_benutzername, _passwort);
+            if (!_fehler)
+            {
+                Navigation.NavigateTo("");
+            }
+        }
+        finally
+        {
+            _laeuft = false;
         }
     }
 }

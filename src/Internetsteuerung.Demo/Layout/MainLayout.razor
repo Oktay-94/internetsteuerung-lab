@@ -2,39 +2,53 @@
 @inject DemoSitzung Sitzung
 @inject NavigationManager Navigation
 
+<a class="sprunglink" href="#inhalt">Zum Inhalt springen</a>
+
 <header class="kopf">
-    <div class="marke">
-        <span class="marke-punkt"></span>
-        <div>
-            <div class="marke-titel">Internetsteuerung</div>
-            <div class="marke-unter">Schulungsraum A · OPNsense</div>
-        </div>
+    <div class="kopf-innen">
+        <a class="marke" href="">
+            <span class="marke-logo"><Icon Name="shield" Groesse="20" /></span>
+            <span class="marke-text">
+                <span class="marke-titel">Internetsteuerung</span>
+                <span class="marke-unter">Schulungsraum A · OPNsense</span>
+            </span>
+        </a>
+
+        @if (Sitzung.Benutzer is { } benutzer)
+        {
+            <nav class="navigation" aria-label="Hauptnavigation">
+                <NavLink href="" Match="NavLinkMatch.All"><Icon Name="dashboard" /> Steuerung</NavLink>
+                <NavLink href="protokoll"><Icon Name="list" /> Protokoll</NavLink>
+            </nav>
+            <div class="konto">
+                <span class="konto-avatar"><Icon Name="user" Groesse="16" /></span>
+                <span class="konto-name">
+                    <span>@benutzer.Benutzername</span>
+                    <span class="konto-rolle">@benutzer.Rolle</span>
+                </span>
+                <button class="knopf knopf-geist" type="button" aria-label="Abmelden" @onclick="Abmelden">
+                    <Icon Name="log-out" Groesse="16" /> <span class="nur-breit">Abmelden</span>
+                </button>
+            </div>
+        }
     </div>
-    @if (Sitzung.Benutzer is { } benutzer)
-    {
-        <nav class="navigation">
-            <NavLink href="" Match="NavLinkMatch.All">Steuerung</NavLink>
-            <NavLink href="protokoll">Protokoll</NavLink>
-        </nav>
-        <div class="konto">
-            <span>@benutzer.Benutzername</span>
-            <span class="rolle">@benutzer.Rolle</span>
-            <button class="knopf-klein" type="button" @onclick="Abmelden">Abmelden</button>
-        </div>
-    }
 </header>
 
-<div class="demo-hinweis">
-    <strong>Live-Demo im Browser.</strong> Firewall, Datenbank und Schüler-PCs sind hier simuliert, die Sperrlogik ist derselbe C#-Code wie im Projekt.
-    Den echten Aufbau mit Docker-Lab und OPNsense-VM zeigt das <a href="https://github.com/Oktay-94/internetsteuerung-lab">Repository auf GitHub</a>.
+<div class="demo-hinweis" role="note">
+    <div class="demo-hinweis-innen">
+        <Icon Name="info" Groesse="16" />
+        <p><strong>Live-Demo im Browser.</strong> Firewall, Datenbank und Schüler-PCs sind simuliert. Die Sperrlogik ist derselbe C#-Code wie im Projekt.</p>
+        <a class="demo-hinweis-link" href="https://github.com/Oktay-94/internetsteuerung-lab"><Icon Name="github" Groesse="16" /> Code und echtes Lab</a>
+    </div>
 </div>
 
-<main class="inhalt">
+<main class="inhalt" id="inhalt" tabindex="-1">
     @Body
 </main>
 
 <footer class="fuss">
-    Portfolio-Nachbau eines IHK-Abschlussprojekts · Oktay Akyüz · C# und .NET 8 (Blazor WebAssembly)
+    <p>Portfolio-Nachbau meines IHK-Abschlussprojekts · Oktay Akyüz</p>
+    <p class="fuss-technik">C# · .NET 8 · Blazor WebAssembly · <a href="https://github.com/Oktay-94/internetsteuerung-lab">GitHub</a> · MIT-Lizenz</p>
 </footer>
 
 @code {

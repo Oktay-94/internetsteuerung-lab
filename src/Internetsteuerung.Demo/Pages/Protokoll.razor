@@ -5,25 +5,44 @@
 
 <PageTitle>Protokoll · Internetsteuerung Demo</PageTitle>
 
-<section class="karte">
-    <h1>Protokoll</h1>
-    <p class="hinweis">Die letzten 100 Aktionen: wer hat wann gesperrt oder freigegeben.</p>
-    <table class="tabelle">
-        <thead>
-            <tr><th>Zeitpunkt</th><th>Akteur</th><th>Aktion</th><th>Details</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var e in _eintraege)
-            {
-                <tr class="aktion-@e.Aktion.ToString().ToLowerInvariant()">
-                    <td>@e.Zeitpunkt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</td>
-                    <td>@e.Akteur</td>
-                    <td>@Text(e.Aktion)</td>
-                    <td>@e.Details</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="seitenkopf">
+    <div>
+        <p class="eyebrow">Nachvollziehbarkeit</p>
+        <h1>Protokoll</h1>
+    </div>
+    <p class="seitenkopf-meta"><Icon Name="list" Groesse="16" /> Die letzten 100 Aktionen: wer hat wann gesperrt, freigegeben oder es versucht.</p>
+</div>
+
+<section class="panel" aria-label="Protokolleinträge">
+    @if (_eintraege.Count == 0)
+    {
+        <div class="leer">
+            <Icon Name="list" Groesse="28" />
+            <p>Noch keine Einträge.</p>
+        </div>
+    }
+    else
+    {
+        <div class="tabelle-rahmen">
+            <table class="tabelle">
+                <thead>
+                    <tr><th scope="col">Zeit</th><th scope="col">Akteur</th><th scope="col">Aktion</th><th scope="col">Details</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in _eintraege)
+                    {
+                        var (text, icon, farbe) = Darstellung(e.Aktion);
+                        <tr>
+                            <td class="tabelle-zeit">@e.Zeitpunkt.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)</td>
+                            <td>@e.Akteur</td>
+                            <td><span class="pill @farbe"><Icon Name="@icon" Groesse="14" /> @text</span></td>
+                            <td class="tabelle-details">@e.Details</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </section>
 
 @code {
@@ -40,13 +59,13 @@
         _eintraege = await ProtokollQuelle.LetzteAsync(100);
     }
 
-    private static string Text(ProtokollAktion aktion) => aktion switch
+    private static (string Text, string Icon, string Farbe) Darstellung(ProtokollAktion aktion) => aktion switch
     {
-        ProtokollAktion.Anmeldung => "Anmeldung",
-        ProtokollAktion.AnmeldungFehlgeschlagen => "Anmeldung fehlgeschlagen",
-        ProtokollAktion.Gesperrt => "Gesperrt",
-        ProtokollAktion.Freigegeben => "Freigegeben",
-        ProtokollAktion.AutomatischFreigegeben => "Automatisch freigegeben",
-        _ => "Fehler",
+        ProtokollAktion.Anmeldung => ("Anmeldung", "log-in", "pill-neutral"),
+        ProtokollAktion.AnmeldungFehlgeschlagen => ("Anmeldung fehlgeschlagen", "alert", "pill-gelb"),
+        ProtokollAktion.Gesperrt => ("Gesperrt", "lock", "pill-rot"),
+        ProtokollAktion.Freigegeben => ("Freigegeben", "lock-open", "pill-gruen"),
+        ProtokollAktion.AutomatischFreigegeben => ("Automatisch freigegeben", "clock", "pill-gruen"),
+        _ => ("Fehler", "alert", "pill-gelb"),
     };
 }
